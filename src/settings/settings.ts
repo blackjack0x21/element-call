@@ -115,6 +115,14 @@ export const videoInput = new Setting<string | undefined>(
   undefined,
 );
 
+/**
+ * The playback volume chosen for each remote user, keyed by Matrix user ID.
+ */
+export const playbackVolumes = new Setting<Record<string, number>>(
+  "playback-volumes",
+  {},
+);
+
 export const backgroundBlur = new Setting<boolean>("background-blur", false);
 
 export const showHandRaisedTimer = new Setting<boolean>(

@@ -42,6 +42,11 @@ interface Props {
    * showing what the slider is being compared against.
    */
   indicator$?: Observable<number>;
+  /**
+   * Whether to show the formatted value beside the slider, for when a tooltip
+   * on the handle alone is not enough.
+   */
+  showValue?: boolean;
 }
 
 /**
@@ -59,6 +64,7 @@ export const Slider: FC<Props> = ({
   disabled,
   tooltipFormatter,
   indicator$,
+  showValue,
 }) => {
   const indicator = useRef<HTMLDivElement>(null);
   // Drawn straight into the DOM: a live reading changes many times a second.
@@ -80,9 +86,13 @@ export const Slider: FC<Props> = ({
     [onValueCommitProp],
   );
 
-  return (
+  const formattedValue = tooltipFormatter
+    ? tooltipFormatter(value)
+    : Math.round(value * 100).toString() + "%";
+
+  const slider = (
     <Root
-      className={classNames(className, styles.slider)}
+      className={classNames(!showValue && className, styles.slider)}
       value={[value]}
       onValueChange={onValueChange}
       onValueCommit={onValueCommit}
@@ -98,16 +108,24 @@ export const Slider: FC<Props> = ({
         )}
       </Track>
       {/* Note: This is expected not to be visible on mobile.*/}
-      <Tooltip
-        placement="top"
-        label={
-          tooltipFormatter
-            ? tooltipFormatter(value)
-            : Math.round(value * 100).toString() + "%"
-        }
-      >
-        <Thumb className={styles.handle} aria-label={label} />
+      <Tooltip placement="top" label={formattedValue}>
+        <Thumb
+          className={styles.handle}
+          aria-label={label}
+          aria-valuetext={formattedValue}
+        />
       </Tooltip>
     </Root>
+  );
+
+  return showValue ? (
+    <div className={classNames(className, styles.withValue)}>
+      {slider}
+      <span className={styles.value} aria-hidden>
+        {formattedValue}
+      </span>
+    </div>
+  ) : (
+    slider
   );
 };

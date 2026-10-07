@@ -298,6 +298,7 @@ export const InCallView: FC<InCallViewProps> = ({
 
   const ringingVm = useBehavior(vm.ringingVm$);
   const audioParticipants = useBehavior(vm.livekitRoomItems$);
+  const playbackBoosts = useBehavior(vm.playbackBoosts$);
   const participantCount = useBehavior(vm.participantCount$);
   const reconnecting = useBehavior(vm.reconnecting$);
   const screenShareError = useBehavior(vm.screenShareError$);
@@ -673,6 +674,7 @@ export const InCallView: FC<InCallViewProps> = ({
           livekitRoom={livekitRoom}
           validIdentities={participants}
           muted={muteAllAudio}
+          playbackBoosts={playbackBoosts}
         />
       ))}
       {renderContent()}

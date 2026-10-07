@@ -5,7 +5,16 @@ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE in the repository root for full details.
 */
 
-import { combineLatest, map, merge, of, Subject, switchMap } from "rxjs";
+import {
+  combineLatest,
+  distinctUntilChanged,
+  map,
+  merge,
+  of,
+  skip,
+  Subject,
+  switchMap,
+} from "rxjs";
 
 import { type Behavior } from "./Behavior";
 import { type ObservableScope } from "./ObservableScope";
@@ -35,7 +44,21 @@ interface VolumeControlsInputs {
    * requested volume.
    */
   sink$: Behavior<(volume: number) => void>;
+  /**
+   * Where the committed volume is remembered beyond the lifetime of the scope.
+   */
+  memory?: VolumeMemory;
 }
+
+export interface VolumeMemory {
+  volume: number;
+  remember: (volume: number) => void;
+}
+
+/**
+ * How close to 100% the volume has to be dragged before it settles on 100%.
+ */
+const UNITY_SNAP_DISTANCE = 0.05;
 
 /**
  * Creates a set of controls for audio playback volume and syncs this with the
@@ -43,38 +66,52 @@ interface VolumeControlsInputs {
  */
 export function createVolumeControls(
   scope: ObservableScope,
-  { pretendToBeDisconnected$, sink$ }: VolumeControlsInputs,
+  { pretendToBeDisconnected$, sink$, memory }: VolumeControlsInputs,
 ): VolumeControls {
   const toggleMuted$ = new Subject<"toggle mute">();
   const adjustVolume$ = new Subject<number>();
   const commitVolume$ = new Subject<"commit">();
 
-  const playbackVolume$ = scope.behavior<number>(
+  const initialVolume = memory?.volume ?? 1;
+  const state$ = scope.behavior(
     merge(toggleMuted$, adjustVolume$, commitVolume$).pipe(
-      accumulate({ volume: 1, committedVolume: 1 }, (state, event) => {
-        switch (event) {
-          case "toggle mute":
-            return {
-              ...state,
-              volume: state.volume === 0 ? state.committedVolume : 0,
-            };
-          case "commit":
-            // Dragging the slider to zero should have the same effect as
-            // muting: keep the original committed volume, as if it were never
-            // dragged
-            return {
-              ...state,
-              committedVolume:
-                state.volume === 0 ? state.committedVolume : state.volume,
-            };
-          default:
-            // Volume adjustment
-            return { ...state, volume: event };
-        }
-      }),
-      map(({ volume }) => volume),
+      accumulate(
+        { volume: initialVolume, committedVolume: initialVolume },
+        (state, event) => {
+          switch (event) {
+            case "toggle mute":
+              return {
+                ...state,
+                volume: state.volume === 0 ? state.committedVolume : 0,
+              };
+            case "commit":
+              // Dragging the slider to zero should have the same effect as
+              // muting: keep the original committed volume, as if it were never
+              // dragged
+              return {
+                ...state,
+                committedVolume:
+                  state.volume === 0 ? state.committedVolume : state.volume,
+              };
+            default:
+              // Volume adjustment
+              return { ...state, volume: snapToUnity(event) };
+          }
+        },
+      ),
     ),
   );
+  const playbackVolume$ = scope.behavior(state$.pipe(map((s) => s.volume)));
+
+  if (memory)
+    state$
+      .pipe(
+        map((s) => s.committedVolume),
+        distinctUntilChanged(),
+        skip(1),
+        scope.bind(),
+      )
+      .subscribe(memory.remember);
 
   // Sync the requested volume with the audio playback module
   combineLatest([
@@ -98,4 +135,8 @@ export function createVolumeControls(
     adjustPlaybackVolume: (value: number) => adjustVolume$.next(value),
     commitPlaybackVolume: () => commitVolume$.next("commit"),
   };
+}
+
+function snapToUnity(volume: number): number {
+  return Math.abs(volume - 1) < UNITY_SNAP_DISTANCE ? 1 : volume;
 }

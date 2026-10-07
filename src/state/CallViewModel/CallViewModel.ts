@@ -387,6 +387,11 @@ export interface CallViewModel {
   allConnections$: Behavior<ConnectionManagerData>;
   /** Participants sorted by livekit room so they can be used in the audio rendering */
   livekitRoomItems$: Behavior<LivekitRoomItem[]>;
+  /**
+   * The playback volume of each remote microphone set above 100%, keyed by
+   * LiveKit identity.
+   */
+  playbackBoosts$: Behavior<Record<string, number>>;
   /** use the layout instead, this is just for the sdk export. */
   remoteMatrixLivekitMembers$: Behavior<RemoteMatrixLivekitMember[]>;
   localMatrixLivekitMember$: Behavior<LocalMatrixLivekitMember | null>;
@@ -861,6 +866,26 @@ export function createCallViewModel$(
               reactions$.pipe(map((v) => v[mediaId] ?? undefined)),
             ),
           }),
+      ),
+    ),
+  );
+
+  const playbackBoosts$ = scope.behavior<Record<string, number>>(
+    userMedia$.pipe(
+      switchMap((media) => {
+        const remote = media.filter((m) => !m.local);
+        return remote.length === 0
+          ? of([])
+          : combineLatest(
+              remote.map((m) =>
+                m.playbackVolume$.pipe(
+                  map((volume) => [m.rtcBackendIdentity, volume] as const),
+                ),
+              ),
+            );
+      }),
+      map((volumes) =>
+        Object.fromEntries(volumes.filter(([, volume]) => volume > 1)),
       ),
     ),
   );
@@ -1913,6 +1938,7 @@ export function createCallViewModel$(
     audioOutputSwitcher$: audioOutputSwitcher$,
     reconnecting$: localMembership.reconnecting$,
     livekitRoomItems$,
+    playbackBoosts$,
     connected$: localMembership.connected$,
     screenShareError$: localMembership.screenShareError$,
     dismissScreenShareError: localMembership.dismissScreenShareError,

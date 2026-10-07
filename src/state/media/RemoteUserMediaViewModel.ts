@@ -18,6 +18,7 @@ import {
   createBaseUserMedia,
 } from "./UserMediaViewModel";
 import { type ObservableScope } from "../ObservableScope";
+import { playbackVolumes } from "../../settings/settings";
 
 export interface RemoteUserMediaViewModel
   extends BaseUserMediaViewModel, VolumeControls {
@@ -65,8 +66,20 @@ export function createRemoteUserMedia(
     ...createVolumeControls(scope, {
       pretendToBeDisconnected$,
       sink$: scope.behavior(
-        inputs.participant$.pipe(map((p) => (volume) => p?.setVolume(volume))),
+        // An audio element can't play louder than 100%, so the audio renderer
+        // applies the remainder
+        inputs.participant$.pipe(
+          map((p) => (volume) => p?.setVolume(Math.min(volume, 1))),
+        ),
       ),
+      memory: {
+        volume: playbackVolumes.getValue()[inputs.userId] ?? 1,
+        remember: (volume) =>
+          playbackVolumes.setValue({
+            ...playbackVolumes.getValue(),
+            [inputs.userId]: volume,
+          }),
+      },
     }),
     local: false,
     speaking$: scope.behavior(
