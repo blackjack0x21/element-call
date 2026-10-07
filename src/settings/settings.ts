@@ -226,6 +226,12 @@ export const autoGainControlSetting = new Setting<boolean>(
   true,
 );
 
+// The volume, from 0 to 1, that speech must reach to be sent. 0 disables it.
+export const voiceActivationThreshold = new Setting<number>(
+  "voice-activation-threshold",
+  0,
+);
+
 /**
  * Seed setting defaults from config.json's media_quality section.
  * Call this after Config.init() has resolved.
