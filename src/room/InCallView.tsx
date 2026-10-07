@@ -282,7 +282,8 @@ export const InCallView: FC<InCallViewProps> = ({
 
   const { showControls, header: headerStyle } = useUrlParams();
 
-  const muteAllAudio = useBehavior(muteAllAudio$);
+  const deafened = useBehavior(muteStates.deafen.deafened$);
+  const muteAllAudio = useBehavior(muteAllAudio$) || deafened;
   const toggleAudio = useBehavior(muteStates.audio.toggle$);
   const toggleVideo = useBehavior(muteStates.video.toggle$);
   const setAudioEnabled = useBehavior(muteStates.audio.setEnabled$);

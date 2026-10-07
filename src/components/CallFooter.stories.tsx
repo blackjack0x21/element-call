@@ -103,6 +103,7 @@ const meta = {
     openSettings: fnArgType,
     toggleAudio: fnArgType,
     toggleVideo: fnArgType,
+    toggleDeafen: fnArgType,
     hangup: fnArgType,
   },
 } satisfies Meta<typeof CallFooterStoryWrapper>;
@@ -122,6 +123,8 @@ export const Default: Story = {
     openSettings: fn(),
     toggleAudio: fn(),
     toggleVideo: fn(),
+    toggleDeafen: fn(),
+    deafened: false,
     toggleScreenSharing: fn(),
     toggleBlur: fn(),
     videoBlurEnabled: true,
@@ -209,6 +212,23 @@ export const AudioBusy: Story = {
     audioEnabled: true,
     audioBusy: true,
     videoEnabled: true,
+  },
+};
+
+export const Deafened: Story = {
+  ...Default,
+  args: {
+    ...Default.args,
+    audioEnabled: false,
+    deafened: true,
+  },
+  play: async ({ args, canvasElement }) => {
+    const undeafen = within(canvasElement).getByRole("switch", {
+      name: "Undeafen",
+    });
+    await expect(undeafen).not.toBeChecked();
+    await userEvent.click(undeafen);
+    await expect(args.toggleDeafen).toHaveBeenCalled();
   },
 };
 
@@ -397,6 +417,7 @@ export const Lobby: Story = {
     openSettings: undefined,
     layout: null,
     toggleScreenSharing: undefined,
+    toggleDeafen: undefined,
   },
   parameters: {
     ...Default.parameters,

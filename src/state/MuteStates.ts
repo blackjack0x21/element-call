@@ -25,6 +25,7 @@ import { type MediaDevices, type MediaDevice } from "../state/MediaDevices";
 import { type DeviceMuteState, type HostBridge } from "../HostBridge";
 import { type ObservableScope } from "./ObservableScope";
 import { type Behavior, constant } from "./Behavior";
+import { DeafenState } from "./DeafenState";
 
 interface MuteStateData {
   enabled$: Observable<boolean>;
@@ -206,6 +207,7 @@ export class MuteStates {
     this.initialMuteState.videoEnabled,
     this.isEarpiece$,
   );
+  public readonly deafen = new DeafenState(this.scope, this.audio);
 
   public constructor(
     private readonly scope: ObservableScope,

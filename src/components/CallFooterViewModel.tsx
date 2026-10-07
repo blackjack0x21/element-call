@@ -163,6 +163,8 @@ export function createCallFooterViewModel(
   return {
     ...buildMuteBehaviors(scope, muteStates),
     ...buildDeviceBehaviors(scope, mediaDevices, disableDeviceSwitcher$),
+    deafened$: muteStates.deafen.deafened$,
+    toggleDeafen$: constant(muteStates.deafen.toggle),
     // candidat to move into the FooterViewModel
     showFooter$: callModel.showFooter$,
     hideControls$: constant(!showControls),
@@ -253,6 +255,8 @@ export function createLobbyFooterViewModel(
       showFooter: true,
       toggleAudio: undefined,
       toggleVideo: undefined,
+      toggleDeafen: undefined,
+      deafened: false,
       toggleScreenSharing: undefined,
       audioEnabled: undefined,
       audioBusy: false,
