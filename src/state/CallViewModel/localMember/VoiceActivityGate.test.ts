@@ -10,133 +10,153 @@ import { type LocalAudioTrack } from "livekit-client";
 import { BehaviorSubject } from "rxjs";
 
 import { ObservableScope } from "../../ObservableScope";
-import { LEVEL_SCALE, segmentsForVolume } from "../../MicrophoneLevel";
-import { gateMicrophoneByVolume, volumeLevel } from "./VoiceActivityGate";
+import { volumeForLevel } from "../../MicrophoneLevel";
+import {
+  type GateDependencies,
+  gateMicrophoneByVolume,
+} from "./VoiceActivityGate";
+import { type GateThresholds } from "./VoiceGateProcessor";
 
 let scope: ObservableScope;
 
 beforeEach(() => {
-  vi.useFakeTimers();
   scope = new ObservableScope();
 });
 
 afterEach(() => {
   scope.end();
-  vi.useRealTimers();
 });
 
 describe("gateMicrophoneByVolume", () => {
-  it("silences the microphone while it is below the threshold", () => {
-    const { mediaStreamTrack, level } = setup(0.5);
-    level.value = 0.1;
-    vi.advanceTimersByTime(1000);
-    expect(mediaStreamTrack.enabled).toBe(false);
+  it("sends the microphone through the gate when there is a threshold", async () => {
+    const { track, processors } = setup(0.5);
+    await settle();
+    expect(track.setProcessor).toHaveBeenCalledWith(processors[0]);
   });
 
-  it("sends the microphone while it is above the threshold", () => {
-    const { mediaStreamTrack, level } = setup(0.5);
-    level.value = 0.8;
-    vi.advanceTimersByTime(100);
-    expect(mediaStreamTrack.enabled).toBe(true);
+  it("opens at the threshold and closes below it, on the meter's scale", async () => {
+    const { processors } = setup(0.5);
+    await settle();
+    expect(processors[0].thresholds).toEqual({
+      open: volumeForLevel(0.5),
+      close: volumeForLevel(0.35),
+    });
   });
 
-  it("holds the gate open briefly after speech", () => {
-    const { mediaStreamTrack, level } = setup(0.5);
-    level.value = 0.8;
-    vi.advanceTimersByTime(100);
-    level.value = 0;
-    vi.advanceTimersByTime(200);
-    expect(mediaStreamTrack.enabled).toBe(true);
-    vi.advanceTimersByTime(500);
-    expect(mediaStreamTrack.enabled).toBe(false);
+  it("leaves the microphone alone when the threshold is 0", async () => {
+    const { track } = setup(0);
+    await settle();
+    expect(track.setProcessor).not.toHaveBeenCalled();
   });
 
-  it("keeps the gate open for quieter sound once speech has started", () => {
-    const { mediaStreamTrack, level } = setup(0.5);
-    level.value = 0.8;
-    vi.advanceTimersByTime(100);
-    level.value = 0.4;
-    vi.advanceTimersByTime(2000);
-    expect(mediaStreamTrack.enabled).toBe(true);
-    level.value = 0.3;
-    vi.advanceTimersByTime(1000);
-    expect(mediaStreamTrack.enabled).toBe(false);
+  it("follows the threshold without rebuilding the gate", async () => {
+    const { threshold$, processors, track } = setup(0.5);
+    await settle();
+    threshold$.next(0.2);
+    await settle();
+    expect(processors).toHaveLength(1);
+    expect(track.setProcessor).toHaveBeenCalledTimes(1);
+    expect(processors[0].thresholds.open).toBe(volumeForLevel(0.2));
   });
 
-  it("needs the full threshold to open the gate", () => {
-    const { mediaStreamTrack, level } = setup(0.5);
-    level.value = 0.4;
-    vi.advanceTimersByTime(1000);
-    expect(mediaStreamTrack.enabled).toBe(false);
-  });
-
-  it("leaves the microphone alone when the threshold is 0", () => {
-    const { mediaStreamTrack, level } = setup(0);
-    level.value = 0;
-    vi.advanceTimersByTime(1000);
-    expect(mediaStreamTrack.enabled).toBe(true);
-  });
-
-  it("restores the microphone when the threshold is turned off", () => {
-    const { mediaStreamTrack, level, threshold$ } = setup(0.5);
-    level.value = 0;
-    vi.advanceTimersByTime(1000);
-    expect(mediaStreamTrack.enabled).toBe(false);
+  it("removes the gate and its audio context when the threshold is turned off", async () => {
+    const { threshold$, track, contexts } = setup(0.5);
+    await settle();
     threshold$.next(0);
-    expect(mediaStreamTrack.enabled).toBe(true);
+    await settle();
+    expect(track.stopProcessor).toHaveBeenCalled();
+    expect(contexts[0].close).toHaveBeenCalled();
   });
 
-  it("does not override an explicit mute", () => {
-    const { mediaStreamTrack, track, level } = setup(0.5);
-    track.isMuted = true;
-    mediaStreamTrack.enabled = false;
-    level.value = 0.8;
-    vi.advanceTimersByTime(1000);
-    expect(mediaStreamTrack.enabled).toBe(false);
-  });
-
-  it("stops measuring when the scope ends", () => {
-    const { stop } = setup(0.5);
-    vi.advanceTimersByTime(100);
+  it("removes the gate when the scope ends", async () => {
+    const { track } = setup(0.5);
+    await settle();
     scope.end();
-    expect(stop).toHaveBeenCalled();
-  });
-});
-
-describe("volumeLevel", () => {
-  it("is 0 for silence", () => {
-    expect(volumeLevel(new Float32Array(16))).toBe(0);
+    await settle();
+    expect(track.stopProcessor).toHaveBeenCalled();
   });
 
-  it("is 1 for full scale", () => {
-    expect(volumeLevel(new Float32Array(16).fill(1))).toBe(1);
+  it("waits for audio to be allowed to run before gating", async () => {
+    let resume!: () => void;
+    const { track } = setup(0.5, new Promise<void>((r) => (resume = r)));
+    await settle();
+    expect(track.setProcessor).not.toHaveBeenCalled();
+    resume();
+    await settle();
+    expect(track.setProcessor).toHaveBeenCalled();
   });
 
-  it("matches the live microphone meter", () => {
-    const volume = 0.25;
-    expect(volumeLevel(new Float32Array(16).fill(volume))).toBe(
-      segmentsForVolume(volume) / LEVEL_SCALE,
+  it("does not gate a microphone it has already let go of", async () => {
+    let resume!: () => void;
+    const { track, contexts } = setup(
+      0.5,
+      new Promise<void>((r) => (resume = r)),
     );
+    scope.end();
+    resume();
+    await settle();
+    expect(track.setProcessor).not.toHaveBeenCalled();
+    expect(contexts[0].close).toHaveBeenCalled();
   });
 });
 
-function setup(threshold: number): {
-  mediaStreamTrack: { enabled: boolean };
-  track: { isMuted: boolean };
-  level: { value: number };
-  stop: ReturnType<typeof vi.fn>;
+async function settle(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+function setup(
+  threshold: number,
+  resumed: Promise<void> = Promise.resolve(),
+): {
+  track: {
+    setProcessor: ReturnType<typeof vi.fn>;
+    stopProcessor: ReturnType<typeof vi.fn>;
+  };
   threshold$: BehaviorSubject<number>;
+  processors: { thresholds: GateThresholds }[];
+  contexts: { close: ReturnType<typeof vi.fn> }[];
 } {
-  const mediaStreamTrack = { enabled: true };
-  const track = { isMuted: false, mediaStreamTrack };
-  const level = { value: 1 };
-  const stop = vi.fn();
+  let current: unknown;
+  const track = {
+    setAudioContext: vi.fn(),
+    setProcessor: vi.fn(async (processor: unknown) => {
+      current = processor;
+      return Promise.resolve();
+    }),
+    stopProcessor: vi.fn(async () => {
+      current = undefined;
+      return Promise.resolve();
+    }),
+    getProcessor: (): unknown => current,
+  };
+  const processors: { thresholds: GateThresholds }[] = [];
+  const contexts: { close: ReturnType<typeof vi.fn> }[] = [];
+  const dependencies = {
+    createProcessor: (thresholds: GateThresholds) => {
+      const processor = {
+        thresholds,
+        setThresholds(next: GateThresholds): void {
+          processor.thresholds = next;
+        },
+      };
+      processors.push(processor);
+      return processor;
+    },
+    createAudioContext: () => {
+      const context = {
+        resume: async (): Promise<void> => resumed,
+        close: vi.fn(async () => Promise.resolve()),
+      };
+      contexts.push(context);
+      return context;
+    },
+  } as unknown as GateDependencies;
   const threshold$ = new BehaviorSubject(threshold);
   gateMicrophoneByVolume(
     scope,
     new BehaviorSubject(track as unknown as LocalAudioTrack),
     threshold$,
-    () => ({ level: () => level.value, stop }),
+    dependencies,
   );
-  return { mediaStreamTrack, track, level, stop, threshold$ };
+  return { track, threshold$, processors, contexts };
 }

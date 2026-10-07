@@ -14,8 +14,24 @@ import {
   RELEASE_MS,
   segmentsForVolume,
   smoothVolume,
+  volumeForLevel,
 } from "./MicrophoneLevel";
 import { restoreAudioCapture, stubAudioCapture } from "../utils/test";
+
+describe("volumeForLevel", () => {
+  test.each([0.1, 0.25, 0.5, 0.9, 1])(
+    "is where the meter reaches level %f",
+    (level) => {
+      const segments = level * LEVEL_SCALE;
+      expect(segmentsForVolume(volumeForLevel(level))).toBeGreaterThanOrEqual(
+        segments,
+      );
+      expect(
+        segmentsForVolume(volumeForLevel(level) * 0.99),
+      ).toBeLessThanOrEqual(Math.ceil(segments));
+    },
+  );
+});
 
 describe("segmentsForVolume", () => {
   test("shows nothing for silence", () => {

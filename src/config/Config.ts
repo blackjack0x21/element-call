@@ -140,7 +140,15 @@ export function validateConfig(config: ConfigOptions): ConfigOptions {
 }
 
 async function downloadConfig(fetchTarget: string): Promise<ConfigOptions> {
-  const response = await fetch(fetchTarget);
+  let response: Response;
+  try {
+    response = await fetch(fetchTarget);
+  } catch (e) {
+    // Custom schemes such as Element Desktop's vector:// reject the fetch with a
+    // network error, rather than answering 404, when the file doesn't exist.
+    logger.info(`No config at ${fetchTarget}, using defaults`, e);
+    return DEFAULT_CONFIG;
+  }
 
   if (isFailure(response)) {
     // Lack of a config isn't an error, we should just use the defaults.

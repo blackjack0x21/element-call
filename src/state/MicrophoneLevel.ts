@@ -124,6 +124,11 @@ export function segmentsForVolume(volume: number): number {
   return Math.min(LEVEL_SCALE, Math.ceil(Math.sqrt(aboveFloor) * LEVEL_SCALE));
 }
 
+/** The volume at which the meter reaches a level from 0 to 1: the inverse of {@link segmentsForVolume}, unquantised. */
+export function volumeForLevel(level: number): number {
+  return NOISE_FLOOR + level * level * (1 - NOISE_FLOOR);
+}
+
 /** Rise time constant: short, so a syllable registers as it starts. */
 export const ATTACK_MS = 50;
 

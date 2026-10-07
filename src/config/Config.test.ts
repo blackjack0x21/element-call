@@ -101,3 +101,23 @@ describe("Config.initWith", () => {
     expect(Config.get().ssla).toBe("https://second.invalid/ssla");
   });
 });
+
+describe("Config.init", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    Config.initDefault();
+  });
+
+  it("falls back to the defaults when fetching config.json fails outright", async () => {
+    // vector:// in Element Desktop rejects with a network error for a missing file.
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(
+      new TypeError("Failed to fetch"),
+    );
+    (Config as unknown as { internalInstance?: Config }).internalInstance =
+      undefined;
+
+    await Config.init();
+
+    expect(Config.get()).toEqual(DEFAULT_CONFIG);
+  });
+});

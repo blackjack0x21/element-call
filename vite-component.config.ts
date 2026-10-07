@@ -37,6 +37,15 @@ export default defineConfig(({ mode }) => {
     // A host's document is not ours to style: everything in the stylesheet is
     // confined to the element Element Call is mounted in
     css: { postcss: { plugins: [scopeStylesToRoot()] } },
+    experimental: {
+      // An AudioWorklet can't be inlined, because a host's script-src rarely
+      // allows blob: or data:. Resolving it against the bundle, rather than the
+      // host's root, lets the host's bundler find it and serve it alongside.
+      renderBuiltUrl: (filename, { hostType }) =>
+        hostType === "js" && filename.includes(".worklet-")
+          ? { relative: true }
+          : undefined,
+    },
     build: {
       // Into the package directory, so that `component/package.json` describes
       // what sits next to it and the directory can be installed as a package
