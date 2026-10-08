@@ -8,12 +8,17 @@ Please see LICENSE in the repository root for full details.
 import { useEffect, useState } from "react";
 
 import {
+  MIN_DECIBELS,
   type MicrophoneState,
   observeMicrophoneState$,
 } from "../state/MicrophoneLevel";
 import { constant } from "../state/Behavior";
 
-const IDLE: MicrophoneState = { type: "level", level$: constant(0) };
+const IDLE: MicrophoneState = {
+  type: "level",
+  level$: constant(0),
+  decibels$: constant(MIN_DECIBELS),
+};
 
 /** The live level of a microphone, captured only while `active`. */
 export function useMicrophoneLevel(

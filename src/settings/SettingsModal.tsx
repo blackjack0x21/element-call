@@ -5,7 +5,14 @@ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE in the repository root for full details.
 */
 
-import { type FC, type ReactNode, useEffect, useMemo, useState } from "react";
+import {
+  type FC,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { type MatrixClient } from "matrix-js-sdk";
 import { Button, Root as Form, Separator } from "@vector-im/compound-web";
@@ -42,7 +49,7 @@ import { useBehavior } from "../useBehavior";
 import { type ViewModel } from "../state/ViewModel.ts";
 import { outOfCallDeveloperSettingsTabViewModel } from "./DeveloperSettingsTabViewModel";
 import { useMicrophoneLevel } from "../components/useMicrophoneLevel";
-import { LEVEL_SCALE } from "../state/MicrophoneLevel";
+import { MIN_DECIBELS } from "../state/MicrophoneLevel";
 
 type SettingsTab =
   | "audio"
@@ -126,9 +133,20 @@ export const SettingsModal: FC<Props> = ({
   const microphoneLevel$ = useMemo(
     () =>
       microphone.type === "level"
-        ? microphone.level$.pipe(map((level) => level / LEVEL_SCALE))
+        ? microphone.decibels$.pipe(
+            map((decibels) => 1 - decibels / MIN_DECIBELS),
+          )
         : undefined,
     [microphone],
+  );
+  const formatThreshold = useCallback(
+    (decibels: number) =>
+      decibels <= MIN_DECIBELS
+        ? t("settings.audio_tab.voice_activation_threshold_off")
+        : t("settings.audio_tab.voice_activation_threshold_value", {
+            decibels,
+          }),
+    [t],
   );
   const [showDeveloperSettingsTab] = useSetting(developerMode);
 
@@ -182,9 +200,7 @@ export const SettingsModal: FC<Props> = ({
               {t("settings.audio_tab.voice_activation_threshold_label")}
               {": "}
               <span className={styles.settingValue}>
-                {thresholdRaw === 0
-                  ? t("settings.audio_tab.voice_activation_threshold_off")
-                  : `${Math.round(thresholdRaw * 100)}%`}
+                {formatThreshold(thresholdRaw)}
               </span>
             </label>
             <p>
@@ -195,9 +211,10 @@ export const SettingsModal: FC<Props> = ({
               value={thresholdRaw}
               onValueChange={setThresholdRaw}
               onValueCommit={setThreshold}
-              min={0}
-              max={1}
-              step={0.01}
+              min={MIN_DECIBELS}
+              max={0}
+              step={1}
+              tooltipFormatter={formatThreshold}
               indicator$={microphoneLevel$}
             />
           </div>

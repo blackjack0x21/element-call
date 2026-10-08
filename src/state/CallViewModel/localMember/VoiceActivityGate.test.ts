@@ -10,7 +10,7 @@ import { type LocalAudioTrack } from "livekit-client";
 import { BehaviorSubject } from "rxjs";
 
 import { ObservableScope } from "../../ObservableScope";
-import { volumeForLevel } from "../../MicrophoneLevel";
+import { MIN_DECIBELS, volumeForDecibels } from "../../MicrophoneLevel";
 import {
   type GateDependencies,
   gateMicrophoneByVolume,
@@ -29,47 +29,47 @@ afterEach(() => {
 
 describe("gateMicrophoneByVolume", () => {
   it("sends the microphone through the gate when there is a threshold", async () => {
-    const { track, processors } = setup(0.5);
+    const { track, processors } = setup(-40);
     await settle();
     expect(track.setProcessor).toHaveBeenCalledWith(processors[0]);
   });
 
-  it("opens at the threshold and closes below it, on the meter's scale", async () => {
-    const { processors } = setup(0.5);
+  it("opens at the threshold and closes 3 dB below it", async () => {
+    const { processors } = setup(-40);
     await settle();
     expect(processors[0].thresholds).toEqual({
-      open: volumeForLevel(0.5),
-      close: volumeForLevel(0.35),
+      open: volumeForDecibels(-40),
+      close: volumeForDecibels(-43),
     });
   });
 
-  it("leaves the microphone alone when the threshold is 0", async () => {
-    const { track } = setup(0);
+  it("leaves the microphone alone when the threshold is the minimum", async () => {
+    const { track } = setup(MIN_DECIBELS);
     await settle();
     expect(track.setProcessor).not.toHaveBeenCalled();
   });
 
   it("follows the threshold without rebuilding the gate", async () => {
-    const { threshold$, processors, track } = setup(0.5);
+    const { threshold$, processors, track } = setup(-40);
     await settle();
-    threshold$.next(0.2);
+    threshold$.next(-60);
     await settle();
     expect(processors).toHaveLength(1);
     expect(track.setProcessor).toHaveBeenCalledTimes(1);
-    expect(processors[0].thresholds.open).toBe(volumeForLevel(0.2));
+    expect(processors[0].thresholds.open).toBe(volumeForDecibels(-60));
   });
 
   it("removes the gate and its audio context when the threshold is turned off", async () => {
-    const { threshold$, track, contexts } = setup(0.5);
+    const { threshold$, track, contexts } = setup(-40);
     await settle();
-    threshold$.next(0);
+    threshold$.next(MIN_DECIBELS);
     await settle();
     expect(track.stopProcessor).toHaveBeenCalled();
     expect(contexts[0].close).toHaveBeenCalled();
   });
 
   it("removes the gate when the scope ends", async () => {
-    const { track } = setup(0.5);
+    const { track } = setup(-40);
     await settle();
     scope.end();
     await settle();
@@ -78,7 +78,7 @@ describe("gateMicrophoneByVolume", () => {
 
   it("waits for audio to be allowed to run before gating", async () => {
     let resume!: () => void;
-    const { track } = setup(0.5, new Promise<void>((r) => (resume = r)));
+    const { track } = setup(-40, new Promise<void>((r) => (resume = r)));
     await settle();
     expect(track.setProcessor).not.toHaveBeenCalled();
     resume();
@@ -89,7 +89,7 @@ describe("gateMicrophoneByVolume", () => {
   it("does not gate a microphone it has already let go of", async () => {
     let resume!: () => void;
     const { track, contexts } = setup(
-      0.5,
+      -40,
       new Promise<void>((r) => (resume = r)),
     );
     scope.end();

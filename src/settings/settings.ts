@@ -12,6 +12,7 @@ import { PosthogAnalytics } from "../analytics/PosthogAnalytics";
 import { type Behavior } from "../state/Behavior";
 import { useBehavior } from "../useBehavior";
 import { MatrixRTCMode } from "../config/ConfigOptions";
+import { MIN_DECIBELS } from "../state/MicrophoneLevel";
 
 export class Setting<T> {
   public constructor(
@@ -235,9 +236,10 @@ export const autoGainControlSetting = new Setting<boolean>(
 );
 
 // The volume, from 0 to 1, that speech must reach to be sent. 0 disables it.
+/** In dBFS; {@link MIN_DECIBELS} turns the gate off. */
 export const voiceActivationThreshold = new Setting<number>(
-  "voice-activation-threshold",
-  0,
+  "voice-activation-threshold-db",
+  MIN_DECIBELS,
 );
 
 /**

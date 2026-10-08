@@ -18,15 +18,15 @@ import { logger } from "matrix-js-sdk/lib/logger";
 
 import { type Behavior } from "../../Behavior.ts";
 import { type ObservableScope } from "../../ObservableScope.ts";
-import { volumeForLevel } from "../../MicrophoneLevel.ts";
+import { MIN_DECIBELS, volumeForDecibels } from "../../MicrophoneLevel.ts";
 import {
   type GateThresholds,
   VoiceGateProcessor,
 } from "./VoiceGateProcessor.ts";
 
 // Speech trailing off, such as the end of an "s", is quieter than it started.
-// Once the gate is open, it stays open down to this share of the threshold.
-const HYSTERESIS = 0.7;
+// Once the gate is open, it stays open down to this far below the threshold.
+const HYSTERESIS_DB = 3;
 
 /** What the gate needs from a processor, so that tests can stand in for the audio graph. */
 export interface GateProcessor {
@@ -46,13 +46,13 @@ const browserDependencies: GateDependencies = {
 };
 
 /**
- * Silences the microphone while it is quieter than a threshold, on the meter's
- * scale. Passing a threshold of 0 disables the gate. The microphone is never
+ * Silences the microphone while it is quieter than a threshold in dBFS.
+ * Passing a threshold of {@link MIN_DECIBELS} disables the gate. The microphone is never
  * muted as far as LiveKit or other participants are concerned; it just sends
  * silence.
  *
  * @param track$ The local microphone track, if there is one.
- * @param threshold$ The meter level, from 0 to 1, that speech must reach.
+ * @param threshold$ The level in dBFS that speech must reach.
  */
 export function gateMicrophoneByVolume(
   scope: ObservableScope,
@@ -61,7 +61,7 @@ export function gateMicrophoneByVolume(
   dependencies: GateDependencies = browserDependencies,
 ): void {
   const enabled$ = threshold$.pipe(
-    map((threshold) => threshold > 0),
+    map((threshold) => threshold > MIN_DECIBELS),
     distinctUntilChanged(),
   );
   combineLatest([track$, enabled$])
@@ -111,9 +111,9 @@ function gate$(
   });
 }
 
-function thresholdsFor(level: number): GateThresholds {
+function thresholdsFor(decibels: number): GateThresholds {
   return {
-    open: volumeForLevel(level),
-    close: volumeForLevel(level * HYSTERESIS),
+    open: volumeForDecibels(decibels),
+    close: volumeForDecibels(decibels - HYSTERESIS_DB),
   };
 }

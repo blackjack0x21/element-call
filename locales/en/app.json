@@ -211,7 +211,8 @@
       "effect_volume_label": "Sound effect volume",
       "voice_activation_threshold_description": "Your microphone is silenced while you are quieter than this level. Set to off to always send your microphone.",
       "voice_activation_threshold_label": "Voice activation threshold",
-      "voice_activation_threshold_off": "Off"
+      "voice_activation_threshold_off": "Off",
+      "voice_activation_threshold_value": "{{decibels}} dB"
     },
     "auto_gain_control_label": "Automatic gain control",
     "background_blur_header": "Background",
