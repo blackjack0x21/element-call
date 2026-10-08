@@ -10,6 +10,12 @@ import { BehaviorSubject, filter, pairwise } from "rxjs";
 import { type Behavior } from "./Behavior";
 import { type ObservableScope } from "./ObservableScope";
 
+/**
+ * The LiveKit participant attribute through which others learn that someone
+ * has deafened, set to "true" or "false".
+ */
+export const DEAFENED_ATTRIBUTE = "deafened";
+
 interface Microphone {
   enabled$: Behavior<boolean>;
   setEnabled$: Behavior<((enabled: boolean) => void) | null>;

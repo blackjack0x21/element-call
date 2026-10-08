@@ -32,6 +32,7 @@ import { type RemoteUserMediaViewModel } from "./RemoteUserMediaViewModel";
 import { type ObservableScope } from "../ObservableScope";
 import { showConnectionStats } from "../../settings/settings";
 import { observeRtpStreamStats$ } from "./observeRtpStreamStats";
+import { DEAFENED_ATTRIBUTE } from "../DeafenState";
 
 /**
  * A participant's user media (i.e. their microphone and camera feed).
@@ -44,6 +45,10 @@ export interface BaseUserMediaViewModel extends BaseMemberMediaViewModel {
   type: "user";
   speaking$: Behavior<boolean>;
   audioEnabled$: Behavior<boolean>;
+  /**
+   * Whether this user has stopped hearing the call.
+   */
+  deafened$: Behavior<boolean>;
   videoEnabled$: Behavior<boolean>;
   videoOrientation$: Behavior<"landscape" | "portrait">;
   toggleCropVideo: () => void;
@@ -130,6 +135,18 @@ export function createBaseUserMedia(
     ),
     audioEnabled$: scope.behavior(
       media$.pipe(map((m) => m?.microphoneTrack?.isMuted === false)),
+    ),
+    deafened$: scope.behavior(
+      participant$.pipe(
+        switchMap((p) =>
+          p
+            ? observeParticipantEvents(
+                p,
+                ParticipantEvent.AttributesChanged,
+              ).pipe(map((p) => p.attributes[DEAFENED_ATTRIBUTE] === "true"))
+            : of(false),
+        ),
+      ),
     ),
     videoEnabled$: scope.behavior(
       media$.pipe(map((m) => m?.cameraTrack?.isMuted === false)),

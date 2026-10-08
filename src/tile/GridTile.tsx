@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import {
   MicOnSolidIcon,
   MicOffSolidIcon,
+  HeadphonesOffSolidIcon,
   MicOffIcon,
   OverflowHorizontalIcon,
   VolumeOnIcon,
@@ -135,6 +136,7 @@ const UserMediaTileInner: FC<UserMediaTileProps & { menu: ReactNode }> = ({
   const audioStreamStats = useBehavior(vm.audioStreamStats$);
   const videoStreamStats = useBehavior(vm.videoStreamStats$);
   const audioEnabled = useBehavior(vm.audioEnabled$);
+  const deafened = useBehavior(vm.deafened$);
   const videoEnabled = useBehavior(vm.videoEnabled$);
   const speaking = useBehavior(vm.speaking$);
 
@@ -144,14 +146,18 @@ const UserMediaTileInner: FC<UserMediaTileProps & { menu: ReactNode }> = ({
 
   const AudioIcon = playbackMuted
     ? VolumeOffSolidIcon
-    : audioEnabled
-      ? MicOnSolidIcon
-      : MicOffSolidIcon;
+    : deafened
+      ? HeadphonesOffSolidIcon
+      : audioEnabled
+        ? MicOnSolidIcon
+        : MicOffSolidIcon;
   const audioIconLabel = playbackMuted
     ? t("video_tile.muted_for_me")
-    : audioEnabled
-      ? t("microphone_on")
-      : t("microphone_off");
+    : deafened
+      ? t("video_tile.deafened")
+      : audioEnabled
+        ? t("microphone_on")
+        : t("microphone_off");
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuTrigger = useMemo(
@@ -189,7 +195,7 @@ const UserMediaTileInner: FC<UserMediaTileProps & { menu: ReactNode }> = ({
           width={20}
           height={20}
           aria-label={audioIconLabel}
-          data-muted={playbackMuted || !audioEnabled}
+          data-muted={playbackMuted || deafened || !audioEnabled}
           className={styles.muteIcon}
         />
       }

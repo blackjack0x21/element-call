@@ -330,6 +330,7 @@ export function mockLocalParticipant(
 ): LocalParticipant {
   return {
     isLocal: true,
+    attributes: {},
     trackPublications: new Map(),
     publishTrack: vi.fn(),
     unpublishTracks: vi.fn().mockResolvedValue([]),
@@ -371,6 +372,7 @@ export function mockRemoteParticipant(
 ): RemoteParticipant {
   return {
     isLocal: false,
+    attributes: {},
     setVolume() {},
     getTrackPublication: () =>
       ({}) as Partial<RemoteTrackPublication> as RemoteTrackPublication,
@@ -634,15 +636,10 @@ export function stubAudioCapture(): StubbedCapture {
       public createAnalyser(): object {
         return {
           fftSize: 1024,
-          getByteTimeDomainData: (samples: Uint8Array): void => {
-            // Silence is the midpoint of the range; a zeroed buffer reads as full scale.
-            if (amplitude <= 0) {
-              samples.fill(128);
-              return;
-            }
-            const peak = Math.round(Math.min(1, amplitude) * 127);
+          getFloatTimeDomainData: (samples: Float32Array): void => {
+            const peak = Math.min(1, Math.max(0, amplitude));
             for (let i = 0; i < samples.length; i++)
-              samples[i] = 128 + (i % 2 ? peak : -peak);
+              samples[i] = i % 2 ? peak : -peak;
           },
         };
       }

@@ -106,6 +106,7 @@ beforeEach(() => {
   muteStates = {
     audio: createMockMuteState(audioEnabled$),
     video: createMockMuteState(videoEnabled$),
+    deafen: { deafened$: constant(false) },
   } as unknown as MuteStates;
 
   const mockSendDataPacket = vi.fn();
