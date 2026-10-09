@@ -12,6 +12,7 @@ import { PosthogAnalytics } from "../analytics/PosthogAnalytics";
 import { type Behavior } from "../state/Behavior";
 import { useBehavior } from "../useBehavior";
 import { MatrixRTCMode } from "../config/ConfigOptions";
+import { MIN_DECIBELS } from "../state/MicrophoneLevel";
 
 export class Setting<T> {
   public constructor(
@@ -113,6 +114,14 @@ export const audioOutput = new Setting<string | undefined>(
 export const videoInput = new Setting<string | undefined>(
   "video-input",
   undefined,
+);
+
+/**
+ * The playback volume chosen for each remote user, keyed by Matrix user ID.
+ */
+export const playbackVolumes = new Setting<Record<string, number>>(
+  "playback-volumes",
+  {},
 );
 
 export const backgroundBlur = new Setting<boolean>("background-blur", false);
@@ -224,6 +233,13 @@ export const noiseSuppressionSetting = new Setting<boolean>(
 export const autoGainControlSetting = new Setting<boolean>(
   "auto-gain-control",
   true,
+);
+
+// The volume, from 0 to 1, that speech must reach to be sent. 0 disables it.
+/** In dBFS; {@link MIN_DECIBELS} turns the gate off. */
+export const voiceActivationThreshold = new Setting<number>(
+  "voice-activation-threshold-db",
+  MIN_DECIBELS,
 );
 
 /**

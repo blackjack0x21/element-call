@@ -13,6 +13,7 @@ import LogoType from "../icons/LogoType.svg?react";
 import {
   EndCallButton,
   MicButton,
+  DeafenButton,
   VideoButton,
   ShareScreenButton,
   SettingsButton,
@@ -56,6 +57,8 @@ export interface FooterActions {
   toggleAudio: (() => void) | undefined;
   /** Also controls if the videoMute button is disabled */
   toggleVideo: (() => void) | undefined;
+  /** Also controls if the deafen button is visible */
+  toggleDeafen: (() => void) | undefined;
   toggleBlur: (() => void) | undefined;
   toggleScreenSharing: (() => void) | undefined;
   /** Also controls if the settings button is visible */
@@ -67,6 +70,7 @@ export interface FooterActions {
 export interface FooterState {
   audioEnabled: boolean;
   audioBusy: boolean;
+  deafened: boolean;
   videoEnabled: boolean;
   videoBusy: boolean;
   videoBlurEnabled: boolean;
@@ -135,6 +139,8 @@ export const CallFooter: FC<FooterProps> = ({
   const videoBusy = useBehavior(vm.videoBusy$);
   const toggleAudio = useBehavior(vm.toggleAudio$);
   const toggleVideo = useBehavior(vm.toggleVideo$);
+  const deafened = useBehavior(vm.deafened$);
+  const toggleDeafen = useBehavior(vm.toggleDeafen$);
   const sharingScreen = useBehavior(vm.sharingScreen$);
   const toggleScreenSharing = useBehavior(vm.toggleScreenSharing$);
   const reactionIdentifier = useBehavior(vm.reactionIdentifier$);
@@ -199,6 +205,18 @@ export const CallFooter: FC<FooterProps> = ({
         onClick={toggleAudio}
         disabled={(audioBusy ?? false) || toggleAudio === undefined}
         data-testid="incall_mute"
+      />,
+    );
+  }
+
+  if (toggleDeafen !== undefined) {
+    buttons.push(
+      <DeafenButton
+        size={buttonSize}
+        key="deafen"
+        deafened={deafened}
+        onClick={toggleDeafen}
+        data-testid="incall_deafen"
       />,
     );
   }

@@ -9,13 +9,39 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
   ATTACK_MS,
+  decibelsForVolume,
   LEVEL_SCALE,
+  MIN_DECIBELS,
   observeMicrophoneState$,
   RELEASE_MS,
   segmentsForVolume,
   smoothVolume,
+  volumeForDecibels,
 } from "./MicrophoneLevel";
 import { restoreAudioCapture, stubAudioCapture } from "../utils/test";
+
+describe("decibelsForVolume", () => {
+  test("reads full scale as 0 dB and halving as 6 dB down", () => {
+    expect(decibelsForVolume(1)).toBe(0);
+    expect(decibelsForVolume(0.5)).toBeCloseTo(-6.02, 2);
+  });
+
+  test("bottoms out at the minimum, silence included", () => {
+    expect(decibelsForVolume(0)).toBe(MIN_DECIBELS);
+    expect(decibelsForVolume(1e-9)).toBe(MIN_DECIBELS);
+    expect(decibelsForVolume(NaN)).toBe(MIN_DECIBELS);
+  });
+
+  test.each([-90, -60, -30, -3, 0])(
+    "is the inverse of volumeForDecibels at %d dB",
+    (decibels) => {
+      expect(decibelsForVolume(volumeForDecibels(decibels))).toBeCloseTo(
+        decibels,
+        9,
+      );
+    },
+  );
+});
 
 describe("segmentsForVolume", () => {
   test("shows nothing for silence", () => {
@@ -171,6 +197,35 @@ describe("observeMicrophoneState$", () => {
     capture.drawFrames(20);
     expect(levels).toBe(1);
     expect(states).toEqual(["level"]);
+
+    subscription.unsubscribe();
+  });
+
+  test("reads in whole decibels, below where the segments start", async () => {
+    const capture = stubAudioCapture();
+
+    let decibels: number[] = [];
+    let levels: number[] = [];
+    const subscription = observeMicrophoneState$("mic1").subscribe((state) => {
+      if (state.type !== "level") return;
+      state.decibels$.subscribe((d) => decibels.push(d));
+      state.level$.subscribe((l) => levels.push(l));
+    });
+    capture.grant();
+    await vi.waitFor(() => expect(decibels).toEqual([MIN_DECIBELS]));
+
+    // About -59 dBFS: far below the segments' noise floor, at about -34 dB.
+    capture.speak(0.0011);
+    decibels = [];
+    levels = [];
+    // Long enough between frames for the smoothing to settle on the reading.
+    const now = vi.spyOn(performance, "now").mockReturnValue(1e6);
+    capture.drawFrames(2);
+    now.mockRestore();
+
+    expect(levels).toEqual([]);
+    expect(decibels.at(-1)).toBe(-60);
+    expect(decibels.every(Number.isInteger)).toBe(true);
 
     subscription.unsubscribe();
   });

@@ -7,6 +7,7 @@ Please see LICENSE in the repository root for full details.
 */
 import {
   ConnectionState as LivekitConnectionState,
+  LocalAudioTrack,
   type LocalTrackPublication,
   LocalVideoTrack,
   ParticipantEvent,
@@ -14,6 +15,8 @@ import {
   Track,
 } from "livekit-client";
 import {
+  combineLatest,
+  filter,
   map,
   NEVER,
   type Observable,
@@ -31,8 +34,14 @@ import {
 } from "../../../livekit/TrackProcessorContext.tsx";
 
 import { observeTrackReference$ } from "../../observeTrackReference";
-import { type Connection } from "../remoteMembers/Connection.ts";
+import {
+  type Connection,
+  ConnectionState,
+} from "../remoteMembers/Connection.ts";
 import { ObservableScope } from "../../ObservableScope.ts";
+import { voiceActivationThreshold } from "../../../settings/settings.ts";
+import { gateMicrophoneByVolume } from "./VoiceActivityGate.ts";
+import { DEAFENED_ATTRIBUTE } from "../../DeafenState.ts";
 
 /**
  * A wrapper for a Connection object.
@@ -75,6 +84,8 @@ export class Publisher {
 
     // Setup track processor syncing (blur)
     this.observeTrackProcessors(this.scope, room, trackerProcessorState$);
+    this.observeVoiceActivity(this.scope, room);
+    this.observeDeafened(this.scope, room);
     // Observe media device changes and update LiveKit active devices accordingly
     this.observeMediaDevices(this.scope, devices, controlledAudioDevices);
 
@@ -441,5 +452,55 @@ export class Publisher {
       null,
     );
     trackProcessorSync(scope, track$, trackerProcessorState$);
+  }
+
+  private observeVoiceActivity(
+    scope: ObservableScope,
+    room: LivekitRoom,
+  ): void {
+    const track$ = scope.behavior(
+      observeTrackReference$(
+        room.localParticipant,
+        Track.Source.Microphone,
+      ).pipe(
+        map((trackRef) => {
+          const track = trackRef?.publication.track;
+          return track instanceof LocalAudioTrack ? track : null;
+        }),
+      ),
+      null,
+    );
+    gateMicrophoneByVolume(scope, track$, voiceActivationThreshold.value$);
+  }
+
+  private observeDeafened(scope: ObservableScope, room: LivekitRoom): void {
+    combineLatest([
+      this.muteStates.deafen.deafened$,
+      this.connection.state$.pipe(
+        map((state) => state === ConnectionState.LivekitConnected),
+      ),
+    ])
+      .pipe(
+        filter(([, connected]) => connected),
+        map(([deafened]) => String(deafened)),
+        filter(
+          (deafened) =>
+            (room.localParticipant.attributes[DEAFENED_ATTRIBUTE] ??
+              "false") !== deafened,
+        ),
+        scope.bind(),
+      )
+      .subscribe((deafened) => {
+        room.localParticipant
+          .setAttributes({ [DEAFENED_ATTRIBUTE]: deafened })
+          .then(
+            () => this.logger.info(`Set deafened attribute: ${deafened}`),
+            (e) =>
+              this.logger.error(
+                `Failed to set deafened attribute: ${deafened}`,
+                e,
+              ),
+          );
+      });
   }
 }

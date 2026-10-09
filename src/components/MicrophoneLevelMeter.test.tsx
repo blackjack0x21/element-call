@@ -9,13 +9,19 @@ import { describe, expect, test } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { MicrophoneLevelMeter } from "./MicrophoneLevelMeter";
-import { LEVEL_SCALE } from "../state/MicrophoneLevel";
+import { LEVEL_SCALE, MIN_DECIBELS } from "../state/MicrophoneLevel";
 import { constant } from "../state/Behavior";
 
 describe("MicrophoneLevelMeter", () => {
   test("announces the level rather than relying on hue", () => {
     render(
-      <MicrophoneLevelMeter state={{ type: "level", level$: constant(6) }} />,
+      <MicrophoneLevelMeter
+        state={{
+          type: "level",
+          level$: constant(6),
+          decibels$: constant(MIN_DECIBELS),
+        }}
+      />,
     );
 
     const meter = screen.getByRole("meter", { name: "Microphone level" });

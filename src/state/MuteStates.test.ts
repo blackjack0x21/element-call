@@ -265,6 +265,7 @@ describe("MuteStates", () => {
     expect(notifyDeviceMute).toHaveBeenLastCalledWith({
       audio_enabled: true,
       video_enabled: false,
+      deafened: false,
     });
 
     // The host asks for the camera on, saying nothing about the microphone,
@@ -275,12 +276,14 @@ describe("MuteStates", () => {
     expect(reply).toHaveBeenCalledExactlyOnceWith({
       audio_enabled: true,
       video_enabled: true,
+      deafened: false,
     });
     expect(muteStates.audio.enabled$.value).toBe(true);
     expect(muteStates.video.enabled$.value).toBe(true);
     expect(notifyDeviceMute).toHaveBeenLastCalledWith({
       audio_enabled: true,
       video_enabled: true,
+      deafened: false,
     });
 
     // Then for everything off
@@ -293,16 +296,70 @@ describe("MuteStates", () => {
     expect(replyAgain).toHaveBeenCalledExactlyOnceWith({
       audio_enabled: false,
       video_enabled: false,
+      deafened: false,
     });
     expect(muteStates.audio.enabled$.value).toBe(false);
     expect(muteStates.video.enabled$.value).toBe(false);
     expect(notifyDeviceMute).toHaveBeenLastCalledWith({
       audio_enabled: false,
       video_enabled: false,
+      deafened: false,
     });
   });
 
-  test("should mute camera when in earpiece mode", async () => {
+  test("lets the host deafen and undeafen", async () => {
+    const deviceMute$ = new Subject<
+      HostRequest<DeviceMuteRequest, DeviceMuteState>
+    >();
+    const hostBridge: HostBridge = { ...nullHostBridge, deviceMute$ };
+    const muteStates = new MuteStates(
+      testScope,
+      mockMediaDevices({
+        audioInput: aAudioInput(),
+        videoInput: aVideoInput(),
+      }),
+      { audioEnabled: true, videoEnabled: false },
+      hostBridge,
+    );
+    await flushPromises();
+
+    // Deafening takes the microphone with it
+    const reply = vi.fn();
+    deviceMute$.next({ data: { deafened: true }, reply });
+    await flushPromises();
+    expect(reply).toHaveBeenCalledExactlyOnceWith({
+      audio_enabled: false,
+      video_enabled: false,
+      deafened: true,
+    });
+    expect(muteStates.deafen.deafened$.value).toBe(true);
+    expect(muteStates.audio.enabled$.value).toBe(false);
+
+    // Asking for the same thing again changes nothing
+    const replyAgain = vi.fn();
+    deviceMute$.next({ data: { deafened: true }, reply: replyAgain });
+    await flushPromises();
+    expect(muteStates.deafen.deafened$.value).toBe(true);
+    expect(replyAgain).toHaveBeenCalledExactlyOnceWith({
+      audio_enabled: false,
+      video_enabled: false,
+      deafened: true,
+    });
+
+    // Undeafening gives the microphone back
+    const replyLast = vi.fn();
+    deviceMute$.next({ data: { deafened: false }, reply: replyLast });
+    await flushPromises();
+    expect(replyLast).toHaveBeenCalledExactlyOnceWith({
+      audio_enabled: true,
+      video_enabled: false,
+      deafened: false,
+    });
+    expect(muteStates.deafen.deafened$.value).toBe(false);
+    expect(muteStates.audio.enabled$.value).toBe(true);
+  });
+
+test("should mute camera when in earpiece mode", async () => {
     const audioOutputDevice = aAudioOutputDevices();
 
     const mediaDevices = mockMediaDevices({

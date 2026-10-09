@@ -282,7 +282,8 @@ export const InCallView: FC<InCallViewProps> = ({
 
   const { showControls, header: headerStyle } = useUrlParams();
 
-  const muteAllAudio = useBehavior(muteAllAudio$);
+  const deafened = useBehavior(muteStates.deafen.deafened$);
+  const muteAllAudio = useBehavior(muteAllAudio$) || deafened;
   const toggleAudio = useBehavior(muteStates.audio.toggle$);
   const toggleVideo = useBehavior(muteStates.video.toggle$);
   const setAudioEnabled = useBehavior(muteStates.audio.setEnabled$);
@@ -297,6 +298,7 @@ export const InCallView: FC<InCallViewProps> = ({
 
   const ringingVm = useBehavior(vm.ringingVm$);
   const audioParticipants = useBehavior(vm.livekitRoomItems$);
+  const playbackBoosts = useBehavior(vm.playbackBoosts$);
   const participantCount = useBehavior(vm.participantCount$);
   const reconnecting = useBehavior(vm.reconnecting$);
   const screenShareError = useBehavior(vm.screenShareError$);
@@ -672,6 +674,7 @@ export const InCallView: FC<InCallViewProps> = ({
           livekitRoom={livekitRoom}
           validIdentities={participants}
           muted={muteAllAudio}
+          playbackBoosts={playbackBoosts}
         />
       ))}
       {renderContent()}

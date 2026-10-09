@@ -56,6 +56,7 @@
     "username": "Username",
     "video": "Video"
   },
+  "deafen_button_label": "Deafen",
   "developer_mode": {
     "always_show_iphone_earpiece": "Show iPhone earpiece option on all platforms",
     "crypto_version": "Crypto version: {{version}}",
@@ -207,7 +208,11 @@
     "audio_processing_header": "Audio processing",
     "audio_tab": {
       "effect_volume_description": "Adjust the volume at which reactions and hand raised effects play.",
-      "effect_volume_label": "Sound effect volume"
+      "effect_volume_label": "Sound effect volume",
+      "voice_activation_threshold_description": "Your microphone is silenced while you are quieter than this level. Set to off to always send your microphone.",
+      "voice_activation_threshold_label": "Voice activation threshold",
+      "voice_activation_threshold_off": "Off",
+      "voice_activation_threshold_value": "{{decibels}} dB"
     },
     "auto_gain_control_label": "Automatic gain control",
     "background_blur_header": "Background",
@@ -270,6 +275,7 @@
   "unauthenticated_view_body": "Not registered yet? <2>Create an account</2>",
   "unauthenticated_view_login_button": "Login to your account",
   "unauthenticated_view_ssla_caption": "By clicking \"Go\", you agree to our <2>Software and Services License Agreement (SSLA)</2>",
+  "undeafen_button_label": "Undeafen",
   "unmute_microphone_button_label": "Unmute microphone",
   "version": "{{productName}} version: {{version}}",
   "video_tile": {
@@ -278,6 +284,7 @@
     "calling": "Calling…",
     "camera_starting": "Video loading...",
     "collapse": "Collapse",
+    "deafened": "Deafened",
     "expand": "Expand",
     "mute_for_me": "Mute for me",
     "muted_for_me": "Muted for me",

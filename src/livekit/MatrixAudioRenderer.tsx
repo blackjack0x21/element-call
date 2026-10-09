@@ -38,6 +38,10 @@ export interface MatrixAudioRendererProps {
    * If set to `true`, the server will stop sending audio track data to the client.
    */
   muted?: boolean;
+  /**
+   * The playback volume of each microphone set above 100%, keyed by identity.
+   */
+  playbackBoosts?: Record<string, number>;
 }
 
 /**
@@ -58,6 +62,7 @@ export function LivekitRoomAudioRenderer({
   livekitRoom,
   validIdentities,
   muted,
+  playbackBoosts = {},
 }: MatrixAudioRendererProps): ReactNode {
   const logger = rootLogger.getChild("[MatrixAudioRenderer]");
   // Identities we have already warned about, so that re-renders (which happen
@@ -113,6 +118,7 @@ export function LivekitRoomAudioRenderer({
   // So we can only use the pan trick only works is the phone is not in standby.
   // If earpiece mode is not used we do not use audioContext to allow standby playback.
   // shouldUseAudioContext is set to false if stereoPan === 0 to allow standby bluetooth playback.
+  // A microphone played above 100% needs the audio context regardless.
 
   const { pan: stereoPan, volume: volumeFactor } = useEarpieceAudioConfig();
   const shouldUseAudioContext = stereoPan !== 0;
@@ -128,34 +134,28 @@ export function LivekitRoomAudioRenderer({
       void ctx.close();
     };
   }, []);
-  const audioNodes = useMemo(
-    () => ({
-      gain: audioContext?.createGain(),
-      pan: audioContext?.createStereoPanner(),
-    }),
-    [audioContext],
-  );
-
-  // Simple effects to update the gain and pan node based on the props
-  useEffect(() => {
-    if (audioNodes.pan) audioNodes.pan.pan.value = stereoPan;
-  }, [audioNodes.pan, stereoPan]);
-  useEffect(() => {
-    if (audioNodes.gain) audioNodes.gain.gain.value = volumeFactor;
-  }, [audioNodes.gain, volumeFactor]);
 
   return (
     // We add all audio elements into one <div> for the browser developer tool experience/tidyness.
     <div style={{ display: "none" }}>
-      {tracks.map((trackRef) => (
-        <AudioTrackWithAudioNodes
-          key={getTrackReferenceId(trackRef)}
-          trackRef={trackRef}
-          muted={muted}
-          audioContext={shouldUseAudioContext ? audioContext : undefined}
-          audioNodes={audioNodes}
-        />
-      ))}
+      {tracks.map((trackRef) => {
+        const boost =
+          trackRef.source === Track.Source.Microphone
+            ? (playbackBoosts[trackRef.participant.identity] ?? 1)
+            : 1;
+        return (
+          <AudioTrackWithAudioNodes
+            key={getTrackReferenceId(trackRef)}
+            trackRef={trackRef}
+            muted={muted}
+            audioContext={
+              shouldUseAudioContext || boost > 1 ? audioContext : undefined
+            }
+            pan={stereoPan}
+            gain={volumeFactor * boost}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -163,10 +163,8 @@ export function LivekitRoomAudioRenderer({
 interface StereoPanAudioTrackProps {
   muted?: boolean;
   audioContext?: AudioContext;
-  audioNodes: {
-    gain?: GainNode;
-    pan?: StereoPannerNode;
-  };
+  pan: number;
+  gain: number;
 }
 
 /**
@@ -178,35 +176,51 @@ interface StereoPanAudioTrackProps {
  * @param props.trackRef The track reference
  * @param props.muted If the track should be muted
  * @param props.audioContext The audio context to use
- * @param props.audioNodes The audio nodes to use
+ * @param props.pan The stereo pan to apply when using the audio context
+ * @param props.gain The gain to apply when using the audio context
  * @returns
  */
 function AudioTrackWithAudioNodes({
   trackRef,
   muted,
   audioContext,
-  audioNodes,
+  pan,
+  gain,
   ...props
 }: StereoPanAudioTrackProps &
   AudioTrackProps &
   React.RefAttributes<HTMLAudioElement>): ReactNode {
+  // Each track gets its own nodes: shared ones would mix every track into
+  // every other track's output, defeating per-participant volume.
+  const audioNodes = useMemo(
+    () =>
+      audioContext && {
+        gain: audioContext.createGain(),
+        pan: audioContext.createStereoPanner(),
+      },
+    [audioContext],
+  );
+  useEffect(() => {
+    if (audioNodes) audioNodes.pan.pan.value = pan;
+  }, [audioNodes, pan]);
+  useEffect(() => {
+    if (audioNodes) audioNodes.gain.gain.value = gain;
+  }, [audioNodes, gain]);
+
   // This is used to unmount/remount the AudioTrack component.
   // Mounting needs to happen after the audioContext is set.
   // (adding the audio context when already mounted did not work outside strict mode)
   const [trackReady, setTrackReady] = useReactiveState(
     () => false,
-    // We only want the track to reset once both (audioNodes and audioContext) are set.
-    // for unsetting the audioContext its enough if one of the two is undefined.
-    [audioContext && audioNodes],
+    [audioNodes],
   );
 
   useEffect(() => {
     if (!trackRef || trackReady) return;
     const track = trackRef.publication.track as RemoteAudioTrack;
-    const useContext = audioContext && audioNodes.gain && audioNodes.pan;
-    track.setAudioContext(useContext ? audioContext : undefined);
+    track.setAudioContext(audioNodes ? audioContext : undefined);
     track.setWebAudioPlugins(
-      useContext ? [audioNodes.gain!, audioNodes.pan!] : [],
+      audioNodes ? [audioNodes.gain, audioNodes.pan] : [],
     );
     setTrackReady(true);
     controls.setPlaybackStarted();

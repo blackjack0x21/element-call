@@ -40,6 +40,17 @@ Please see LICENSE in the repository root for full details.
   background: var(--cpd-color-bg-action-primary-disabled);
 }
 
+.indicator {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 0;
+  border-radius: var(--cpd-radius-pill-effect);
+  background: var(--cpd-color-icon-success-primary);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
 .handle {
   display: block;
   block-size: var(--cpd-space-4x);
@@ -54,4 +65,22 @@ Please see LICENSE in the repository root for full details.
 .handle[data-disabled] {
   cursor: initial;
   background: var(--cpd-color-bg-action-primary-disabled);
+}
+
+.withValue {
+  display: flex;
+  align-items: center;
+  gap: var(--cpd-space-3x);
+}
+
+.withValue > .slider {
+  flex-grow: 1;
+}
+
+.value {
+  font: var(--cpd-font-body-sm-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--cpd-color-text-secondary);
+  min-inline-size: 4ch;
+  text-align: end;
 }

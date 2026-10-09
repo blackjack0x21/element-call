@@ -5,11 +5,19 @@ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE in the repository root for full details.
 */
 
-import { type FC, type ReactNode, useEffect, useState } from "react";
+import {
+  type FC,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { type MatrixClient } from "matrix-js-sdk";
 import { Button, Root as Form, Separator } from "@vector-im/compound-web";
 import { type Room as LivekitRoom } from "livekit-client";
+import { map } from "rxjs";
 
 import { Modal } from "../Modal";
 import styles from "./SettingsModal.module.css";
@@ -23,6 +31,7 @@ import {
   useSetting,
   soundEffectVolume as soundEffectVolumeSetting,
   backgroundBlur as backgroundBlurSetting,
+  voiceActivationThreshold as voiceActivationThresholdSetting,
   developerMode,
 } from "./settings";
 import { PreferencesSettingsTab } from "./PreferencesSettingsTab";
@@ -39,6 +48,8 @@ import { useUrlParams } from "../UrlParams";
 import { useBehavior } from "../useBehavior";
 import { type ViewModel } from "../state/ViewModel.ts";
 import { outOfCallDeveloperSettingsTabViewModel } from "./DeveloperSettingsTabViewModel";
+import { useMicrophoneLevel } from "../components/useMicrophoneLevel";
+import { MIN_DECIBELS } from "../state/MicrophoneLevel";
 
 type SettingsTab =
   | "audio"
@@ -113,6 +124,30 @@ export const SettingsModal: FC<Props> = ({
 
   const [soundVolume, setSoundVolume] = useSetting(soundEffectVolumeSetting);
   const [soundVolumeRaw, setSoundVolumeRaw] = useState(soundVolume);
+  const [threshold, setThreshold] = useSetting(voiceActivationThresholdSetting);
+  const [thresholdRaw, setThresholdRaw] = useState(threshold);
+  const microphone = useMicrophoneLevel(
+    useBehavior(devices.audioInput.selected$)?.id,
+    open && tab === "audio",
+  );
+  const microphoneLevel$ = useMemo(
+    () =>
+      microphone.type === "level"
+        ? microphone.decibels$.pipe(
+            map((decibels) => 1 - decibels / MIN_DECIBELS),
+          )
+        : undefined,
+    [microphone],
+  );
+  const formatThreshold = useCallback(
+    (decibels: number) =>
+      decibels <= MIN_DECIBELS
+        ? t("settings.audio_tab.voice_activation_threshold_off")
+        : t("settings.audio_tab.voice_activation_threshold_value", {
+            decibels,
+          }),
+    [t],
+  );
   const [showDeveloperSettingsTab] = useSetting(developerMode);
 
   const { available: isRageshakeAvailable } = useSubmitRageshake();
@@ -159,6 +194,30 @@ export const SettingsModal: FC<Props> = ({
             title={t("settings.devices.speaker")}
             numberedLabel={(n) => t("settings.devices.speaker_numbered", { n })}
           />
+
+          <div className={styles.volumeSlider}>
+            <label>
+              {t("settings.audio_tab.voice_activation_threshold_label")}
+              {": "}
+              <span className={styles.settingValue}>
+                {formatThreshold(thresholdRaw)}
+              </span>
+            </label>
+            <p>
+              {t("settings.audio_tab.voice_activation_threshold_description")}
+            </p>
+            <Slider
+              label={t("settings.audio_tab.voice_activation_threshold_label")}
+              value={thresholdRaw}
+              onValueChange={setThresholdRaw}
+              onValueCommit={setThreshold}
+              min={MIN_DECIBELS}
+              max={0}
+              step={1}
+              tooltipFormatter={formatThreshold}
+              indicator$={microphoneLevel$}
+            />
+          </div>
 
           <div className={styles.volumeSlider}>
             <label>
