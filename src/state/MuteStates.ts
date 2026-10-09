@@ -220,10 +220,11 @@ export class MuteStates {
   ) {
     // Keep the host informed of our mute state
     const muteState$ = combineLatest(
-      [this.audio.enabled$, this.video.enabled$],
-      (audio, video): DeviceMuteState => ({
+      [this.audio.enabled$, this.video.enabled$, this.deafen.deafened$],
+      (audio, video, deafened): DeviceMuteState => ({
         audio_enabled: audio,
         video_enabled: video,
+        deafened,
       }),
     );
     muteState$.pipe(this.scope.bind()).subscribe((state) => {
@@ -245,6 +246,15 @@ export class MuteStates {
       .subscribe(([request, state, setAudioEnabled, setVideoEnabled]) => {
         // First copy the current state into our new state
         const newState = { ...state };
+        // Deafening goes first: it moves the microphone too, which the fields
+        // below may then override
+        if (
+          typeof request.data.deafened === "boolean" &&
+          request.data.deafened !== newState.deafened
+        ) {
+          newState.audio_enabled = this.deafen.toggle();
+          newState.deafened = request.data.deafened;
+        }
         // Then apply whichever changes the host asked for
         if (
           typeof request.data.audio_enabled === "boolean" &&
@@ -252,6 +262,8 @@ export class MuteStates {
         ) {
           newState.audio_enabled = request.data.audio_enabled;
           setAudioEnabled(newState.audio_enabled);
+          // Unmuting ends deafening, as it does from the footer
+          if (newState.audio_enabled) newState.deafened = false;
         }
         if (
           typeof request.data.video_enabled === "boolean" &&

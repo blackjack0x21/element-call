@@ -26,6 +26,11 @@ import {
 export type DeviceMuteState = {
   audio_enabled: boolean;
   video_enabled: boolean;
+  /**
+   * Whether the user has stopped hearing the call. Deafening also mutes the
+   * microphone. Hosts that predate this field can ignore it.
+   */
+  deafened?: boolean;
 };
 
 /**
@@ -35,6 +40,11 @@ export type DeviceMuteState = {
 export type DeviceMuteRequest = {
   audio_enabled?: boolean;
   video_enabled?: boolean;
+  /**
+   * Deafen or undeafen the user. Applied before the other fields, so asking
+   * to deafen and unmute at once ends with the user undeafened.
+   */
+  deafened?: boolean;
 };
 
 /**

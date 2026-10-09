@@ -45,15 +45,23 @@ export class DeafenState {
       .subscribe(() => this.deafenedSubject$.next(false));
   }
 
-  public readonly toggle = (): void => {
+  /**
+   * Deafens, or undeafens if already deafened.
+   *
+   * @returns whether the microphone is meant to be enabled afterwards, which
+   * its own state may take a moment to show
+   */
+  public readonly toggle = (): boolean => {
     const setMicrophoneEnabled = this.microphone.setEnabled$.value;
     if (this.deafenedSubject$.value) {
       this.deafenedSubject$.next(false);
       if (this.microphoneWasEnabled) setMicrophoneEnabled?.(true);
+      return this.microphoneWasEnabled;
     } else {
       this.microphoneWasEnabled = this.microphone.enabled$.value;
       this.deafenedSubject$.next(true);
       setMicrophoneEnabled?.(false);
+      return false;
     }
   };
 }
