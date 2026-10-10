@@ -35,6 +35,7 @@ import { ErrorPage, LoadingPage } from "./FullScreenView";
 import { Initializer } from "./initializer";
 import { type WidgetHelpers } from "./widget";
 import { useTheme } from "./useTheme";
+import { useHostSoundEffectVolume } from "./useHostSoundEffectVolume";
 import { ProcessorProvider } from "./livekit/TrackProcessorContext";
 import { type AppViewModel } from "./state/AppViewModel";
 import { MediaDevicesContext } from "./MediaDevicesContext";
@@ -99,6 +100,7 @@ const BackgroundProvider: FC<SimpleProviderProps> = ({ children }) => {
 
 const ThemeProvider: FC<SimpleProviderProps> = ({ children }) => {
   useTheme();
+  useHostSoundEffectVolume();
   return children;
 };
 

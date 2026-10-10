@@ -25,3 +25,7 @@ The following sound effects have been originally created by Element.
 - `reactions/rock`
 - `reactions/wave`
 - `reactions/baduntss`
+- `mute`
+- `unmute`
+- `deafen`
+- `undeafen`

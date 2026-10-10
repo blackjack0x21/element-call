@@ -63,6 +63,7 @@ import {
 import { ReactionsAudioRenderer } from "./ReactionAudioRenderer";
 import { ReactionsOverlay } from "./ReactionsOverlay";
 import { CallEventAudioRenderer } from "./CallEventAudioRenderer";
+import { MuteAudioRenderer } from "./MuteAudioRenderer";
 import { matrixRTCMode as matrixRTCModeSetting } from "../settings/settings";
 import { ReactionsReader } from "../reactions/ReactionsReader";
 import { LivekitRoomAudioRenderer } from "../livekit/MatrixAudioRenderer.tsx";
@@ -283,7 +284,8 @@ export const InCallView: FC<InCallViewProps> = ({
   const { showControls, header: headerStyle } = useUrlParams();
 
   const deafened = useBehavior(muteStates.deafen.deafened$);
-  const muteAllAudio = useBehavior(muteAllAudio$) || deafened;
+  const muteAllAudioSetting = useBehavior(muteAllAudio$);
+  const muteAllAudio = muteAllAudioSetting || deafened;
   const toggleAudio = useBehavior(muteStates.audio.toggle$);
   const toggleVideo = useBehavior(muteStates.video.toggle$);
   const setAudioEnabled = useBehavior(muteStates.audio.setEnabled$);
@@ -679,6 +681,7 @@ export const InCallView: FC<InCallViewProps> = ({
       ))}
       {renderContent()}
       <CallEventAudioRenderer vm={vm} muted={muteAllAudio} />
+      <MuteAudioRenderer muteStates={muteStates} muted={muteAllAudioSetting} />
       <ReactionsAudioRenderer vm={vm} muted={muteAllAudio} />
       <RingingAudioRenderer vm={ringingVm} muted={muteAllAudio} />
       {reconnectingToast}

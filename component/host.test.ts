@@ -158,4 +158,32 @@ describe("useComponentHostBridge", () => {
       expect(names).toEqual([]);
     });
   });
+
+  describe("the sound effect volume", () => {
+    test("follows the prop, replaying to late subscribers", () => {
+      const { result, rerender } = renderHook(
+        ({ volume }: { volume: number | undefined }) =>
+          useComponentHostBridge(undefined, undefined, undefined, volume),
+        { initialProps: { volume: 0.2 } },
+      );
+      const volumes: (number | undefined)[] = [];
+      result.current.soundEffectVolume$.subscribe(({ data }) =>
+        volumes.push(data.volume),
+      );
+
+      rerender({ volume: 0.9 });
+      expect(volumes).toEqual([0.2, 0.9]);
+    });
+
+    test("says nothing when the host leaves it to the user", () => {
+      const { result } = renderHook(() =>
+        useComponentHostBridge(undefined, undefined, undefined),
+      );
+      const volumes: (number | undefined)[] = [];
+      result.current.soundEffectVolume$.subscribe(({ data }) =>
+        volumes.push(data.volume),
+      );
+      expect(volumes).toEqual([]);
+    });
+  });
 });

@@ -44,6 +44,9 @@ export enum ElementWidgetActions {
   //   video_enabled?: boolean
   // }
   DeviceMute = "io.element.device_mute",
+  // Sent by the host to set the volume of Element Call's sound effects.
+  // The data of the request is { volume: number }, from 0 (silent) to 1 (full).
+  SoundEffectVolume = "io.element.sound_effect_volume",
 }
 
 export interface JoinCallData {
@@ -104,6 +107,7 @@ export const initializeWidget = (
         ElementWidgetActions.JoinCall,
         ElementWidgetActions.HangupCall,
         ElementWidgetActions.DeviceMute,
+        ElementWidgetActions.SoundEffectVolume,
       ].forEach((action) => {
         api.on(`action:${action}`, (ev: CustomEvent<IWidgetApiRequest>) => {
           ev.preventDefault();

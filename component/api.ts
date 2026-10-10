@@ -113,6 +113,11 @@ export interface ElementCallProps {
    */
   theme?: string;
   /**
+   * The volume of Element Call's sound effects, from 0 (silent) to 1 (full).
+   * Left out, the user's own setting applies. Changes take effect at once.
+   */
+  soundEffectVolume?: number;
+  /**
    * The language to show Element Call in, as a BCP 47 tag: one of the
    * `supportedLanguages` the main entry point exports, or something that falls
    * back to one (`de-AT` to `de`). Left out, the browser's language is used.

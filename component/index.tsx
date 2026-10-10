@@ -79,6 +79,7 @@ import { Config } from "../src/config/Config";
 import { type ConfigOptions } from "../src/config/ConfigOptions";
 import { i18n } from "../src/utils/i18n";
 import { useTheme } from "../src/useTheme";
+import { useHostSoundEffectVolume } from "../src/useHostSoundEffectVolume";
 import { useStableValue } from "../src/useStableValue";
 import styles from "./ElementCall.module.css";
 import { useComponentHostBridge } from "./host";
@@ -137,6 +138,7 @@ export async function initializeElementCall(
 /** Applies the theme and background to the container, before it is painted. */
 const Decoration: FC<{ children: JSX.Element }> = ({ children }) => {
   useTheme();
+  useHostSoundEffectVolume();
   const { background } = useUrlParams();
   const rootElement = useRootElement();
   useLayoutEffect(() => {
@@ -153,9 +155,15 @@ export const ElementCall: FC<ElementCallProps> = ({
   hostBridge: suppliedHostBridge,
   ref,
   theme,
+  soundEffectVolume,
   language,
 }): ReactNode => {
-  const hostBridge = useComponentHostBridge(suppliedHostBridge, ref, theme);
+  const hostBridge = useComponentHostBridge(
+    suppliedHostBridge,
+    ref,
+    theme,
+    soundEffectVolume,
+  );
 
   useEffect(() => {
     if (language !== undefined)

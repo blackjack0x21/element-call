@@ -105,6 +105,11 @@ export interface HostBridge {
   hangUp$: Observable<HostRequest<Record<string, never>>>;
   /** The host wants to change, or read back, the device mute state. */
   deviceMute$: Observable<HostRequest<DeviceMuteRequest, DeviceMuteState>>;
+  /**
+   * The host wants Element Call's sound effects at this volume, from 0
+   * (silent) to 1 (full).
+   */
+  soundEffectVolume$: Observable<HostRequest<{ volume?: number }>>;
 
   // What the host is, and is capable of.
 
@@ -148,6 +153,7 @@ export const nullHostBridge: HostBridge = {
   join$: NEVER,
   hangUp$: NEVER,
   deviceMute$: NEVER,
+  soundEffectVolume$: NEVER,
   // Standalone, the account is Element Call's own: it signed the user in, so
   // it may offer to change the profile.
   supportsProfileChanges: true,
@@ -208,6 +214,7 @@ export function createWidgetHostBridge(widget: WidgetHelpers): HostBridge {
     join$: requests(ElementWidgetActions.JoinCall),
     hangUp$: requests(ElementWidgetActions.HangupCall),
     deviceMute$: requests(ElementWidgetActions.DeviceMute),
+    soundEffectVolume$: requests(ElementWidgetActions.SoundEffectVolume),
     // The client we are a widget of signed the user in, so the profile is its
     // to manage
     supportsProfileChanges: false,
