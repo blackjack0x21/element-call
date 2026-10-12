@@ -349,7 +349,7 @@ describe("UrlParams", () => {
         ...startNewCallDefaults("desktop"),
         // A DM rings the other side and waits for them, whichever platform
         sendNotificationType: "ring",
-        autoLeaveWhenOthersLeft: true,
+        autoLeaveWhenOthersLeft: false,
         waitForCallPickup: true,
         callIntent: "audio",
       });
@@ -364,7 +364,7 @@ describe("UrlParams", () => {
         ...joinExistingCallDefaults("desktop"),
         // Straight in: the other side is already waiting
         skipLobby: true,
-        autoLeaveWhenOthersLeft: true,
+        autoLeaveWhenOthersLeft: false,
         waitForCallPickup: false,
         callIntent: "video",
       });
@@ -378,7 +378,7 @@ describe("UrlParams", () => {
       ).toMatchObject({
         ...joinExistingCallDefaults("desktop"),
         skipLobby: true,
-        autoLeaveWhenOthersLeft: true,
+        autoLeaveWhenOthersLeft: false,
         waitForCallPickup: false,
         callIntent: "audio",
       });

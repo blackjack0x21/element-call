@@ -201,13 +201,14 @@ export function configurationForIntent(intent: UserIntent): UrlConfiguration {
       preset.skipLobby = false;
       preset.callIntent = "audio";
       break;
+    // DM calls stay open when the other side leaves, until the user hangs up
     case UserIntent.StartNewCallDMVoice:
       preset.callIntent = "audio";
     // Fall through
     case UserIntent.StartNewCallDM:
       preset.skipLobby = true;
       preset.sendNotificationType = "ring";
-      preset.autoLeaveWhenOthersLeft = true;
+      preset.autoLeaveWhenOthersLeft = false;
       preset.waitForCallPickup = true;
       preset.callIntent = preset.callIntent ?? "video";
       break;
@@ -217,7 +218,7 @@ export function configurationForIntent(intent: UserIntent): UrlConfiguration {
     case UserIntent.JoinExistingCallDM:
       // On desktop this will be overridden based on which button was used to join the call
       preset.skipLobby = true;
-      preset.autoLeaveWhenOthersLeft = true;
+      preset.autoLeaveWhenOthersLeft = false;
       preset.callIntent = preset.callIntent ?? "video";
       break;
     // Non widget usecase defaults
