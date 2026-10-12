@@ -401,6 +401,14 @@ const LoadedCallView: FC<LoadedProps> = ({
       setJoined(false);
       setLeft(true);
 
+      // Tell the host now rather than after the leave sound: ending the view
+      // below can stop us from sending the hangup (see LocalMember), and the
+      // host should not keep showing us as in the call while the sound plays.
+      // Staying on screen is a separate matter, it ends once the sound has.
+      hostBridge.notifyHungUp().catch((e) => {
+        logger.error("Failed to notify the host that we hung up", e);
+      });
+
       // We need to wait until the callEnded event is tracked on PostHog,
       // otherwise we may be torn down first.
       const posthogRequest = new Promise((resolve) => {

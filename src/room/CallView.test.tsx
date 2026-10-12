@@ -309,6 +309,33 @@ test("Waits for the host to say when to join, when preloaded", async () => {
   expect(screen.getByText("Leave")).toBeInTheDocument();
 });
 
+test("Should tell the host we hung up without waiting for the leave sound", async () => {
+  const user = userEvent.setup();
+  const notifyHungUp = vi.fn().mockResolvedValue(undefined);
+  const setAlwaysOnScreen = vi.fn().mockResolvedValue(undefined);
+  const hostBridge: HostBridge = {
+    ...nullHostBridge,
+    notifyHungUp,
+    setAlwaysOnScreen,
+  };
+  // The leave sound is still playing
+  let finishSound: () => void;
+  playSound.mockReturnValue(
+    new Promise<void>((resolve) => (finishSound = resolve)),
+  );
+
+  const { getByText } = createCallView(hostBridge);
+  await user.click(getByText("Leave"));
+
+  // The host is told straight away, so it can stop showing us as in the call...
+  await waitFor(() => expect(notifyHungUp).toHaveBeenCalledOnce());
+  // ...but we stay on screen until the sound has finished
+  expect(setAlwaysOnScreen).not.toHaveBeenCalledWith(false);
+
+  finishSound!();
+  await waitFor(() => expect(setAlwaysOnScreen).toHaveBeenCalledWith(false));
+});
+
 test("Should not ask the host to close when auto leave due to error", async () => {
   const user = userEvent.setup();
 
