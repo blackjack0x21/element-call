@@ -118,6 +118,12 @@ export interface ElementCallProps {
    */
   soundEffectVolume?: number;
   /**
+   * Whether the host shows Element Call as a small floating window with
+   * controls of its own. Element Call then shows nothing but the video.
+   * Defaults to false. Changes take effect at once.
+   */
+  pip?: boolean;
+  /**
    * The language to show Element Call in, as a BCP 47 tag: one of the
    * `supportedLanguages` the main entry point exports, or something that falls
    * back to one (`de-AT` to `de`). Left out, the browser's language is used.

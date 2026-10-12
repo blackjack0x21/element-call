@@ -156,6 +156,7 @@ export const ElementCall: FC<ElementCallProps> = ({
   ref,
   theme,
   soundEffectVolume,
+  pip,
   language,
 }): ReactNode => {
   const hostBridge = useComponentHostBridge(
@@ -163,6 +164,7 @@ export const ElementCall: FC<ElementCallProps> = ({
     ref,
     theme,
     soundEffectVolume,
+    pip,
   );
 
   useEffect(() => {

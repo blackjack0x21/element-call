@@ -45,6 +45,7 @@ import {
   exampleTransport,
 } from "../../utils/test.ts";
 import { E2eeType } from "../../e2ee/e2eeType.ts";
+import { nullHostBridge } from "../../HostBridge.ts";
 import {
   alice,
   aliceId,
@@ -446,6 +447,29 @@ describe.each(modes)("CallViewModel (%s mode)", (mode) => {
             },
           );
         },
+      );
+    });
+  });
+
+  test("shows only the video while the host has us in a pip", () => {
+    withTestScheduler(({ cold, expectObservable }) => {
+      // The host puts us in a pip, then takes us out of it again
+      const pip$ = cold("-a-b", {
+        a: { data: { enabled: true }, reply: (): void => {} },
+        b: { data: { enabled: false }, reply: (): void => {} },
+      });
+
+      withCallViewModel(
+        {
+          remoteParticipants$: constant([aliceParticipant]),
+          roomMembers: [local, alice],
+          rtcMembers$: constant([localRtcMember, aliceRtcMember]),
+        },
+        (vm) => {
+          expectObservable(vm.showFooter$).toBe("yn-y", yesNo);
+          expectObservable(vm.showHeader$).toBe("yn-y", yesNo);
+        },
+        { hostBridge: { ...nullHostBridge, pip$ } },
       );
     });
   });

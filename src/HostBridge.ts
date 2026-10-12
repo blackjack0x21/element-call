@@ -115,6 +115,12 @@ export interface HostBridge {
    * (silent) to 1 (full).
    */
   soundEffectVolume$: Observable<HostRequest<{ volume?: number }>>;
+  /**
+   * The host is showing Element Call as a small floating window (or no longer
+   * is). It draws its own controls around it, so Element Call should show
+   * nothing but the video.
+   */
+  pip$: Observable<HostRequest<{ enabled?: boolean }>>;
 
   // What the host is, and is capable of.
 
@@ -160,6 +166,7 @@ export const nullHostBridge: HostBridge = {
   hangUp$: NEVER,
   deviceMute$: NEVER,
   soundEffectVolume$: NEVER,
+  pip$: NEVER,
   // Standalone, the account is Element Call's own: it signed the user in, so
   // it may offer to change the profile.
   supportsProfileChanges: true,
@@ -223,6 +230,7 @@ export function createWidgetHostBridge(widget: WidgetHelpers): HostBridge {
     hangUp$: requests(ElementWidgetActions.HangupCall),
     deviceMute$: requests(ElementWidgetActions.DeviceMute),
     soundEffectVolume$: requests(ElementWidgetActions.SoundEffectVolume),
+    pip$: requests(ElementWidgetActions.Pip),
     // The client we are a widget of signed the user in, so the profile is its
     // to manage
     supportsProfileChanges: false,

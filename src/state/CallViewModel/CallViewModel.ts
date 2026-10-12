@@ -1147,6 +1147,16 @@ export function createCallViewModel$(
 
   const pipEnabled$ = scope.behavior(setPipEnabled$, false);
 
+  // Whether the host shows us as a small floating window with controls of its
+  // own, in which case we show nothing but the video.
+  const hostPip$ = scope.behavior(
+    hostBridge.pip$.pipe(
+      tap((request) => request.reply()),
+      map((request) => request.data.enabled === true),
+    ),
+    false,
+  );
+
   // A guess at what the window's mode should be based on the size and shape of
   // the space we have to draw in.
   const naturalWindowMode$ = scope.behavior<WindowMode>(
@@ -1167,8 +1177,10 @@ export function createCallViewModel$(
    * The general shape of the window.
    */
   const windowMode$ = scope.behavior<WindowMode>(
-    pipEnabled$.pipe(
-      switchMap((pip) => (pip ? of<WindowMode>("pip") : naturalWindowMode$)),
+    combineLatest([pipEnabled$, hostPip$]).pipe(
+      switchMap(([pip, hostPip]) =>
+        pip || hostPip ? of<WindowMode>("pip") : naturalWindowMode$,
+      ),
     ),
   );
 
@@ -1569,8 +1581,11 @@ export function createCallViewModel$(
     header === HeaderStyle.None && showControls === false
   );
   const showFooter$ = scope.behavior(
-    naturallyShowFooter$.pipe(
-      map((naturallyShowFooter) => naturallyShowFooter && showFooterUrlParams),
+    combineLatest([naturallyShowFooter$, hostPip$]).pipe(
+      map(
+        ([naturallyShowFooter, hostPip]) =>
+          naturallyShowFooter && showFooterUrlParams && !hostPip,
+      ),
     ),
   );
 

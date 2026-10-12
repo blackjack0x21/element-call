@@ -128,6 +128,8 @@ export function useComponentHostBridge(
   theme: string | undefined,
   /** The volume the host wants sound effects at, or undefined to leave it to the user. */
   soundEffectVolume?: number,
+  /** Whether the host shows Element Call as a small floating window. */
+  pip?: boolean,
 ): HostBridge {
   const latest = useLatest(supplied ?? {});
 
@@ -140,6 +142,7 @@ export function useComponentHostBridge(
     themeChange$: new ReplaySubject<HostRequest<{ name?: string }>>(1),
     // State rather than an event too, and replayed for the same reason
     soundEffectVolume$: new ReplaySubject<HostRequest<{ volume?: number }>>(1),
+    pip$: new ReplaySubject<HostRequest<{ enabled?: boolean }>>(1),
     join$: new Subject<HostRequest<JoinCallData>>(),
     hangUp$: new Subject<HostRequest<Record<string, never>>>(),
     deviceMute$: new Subject<HostRequest<DeviceMuteRequest, DeviceMuteState>>(),
@@ -157,6 +160,11 @@ export function useComponentHostBridge(
         reply: () => {},
       });
   }, [requests, soundEffectVolume]);
+
+  useEffect(() => {
+    if (pip !== undefined)
+      requests.pip$.next({ data: { enabled: pip }, reply: () => {} });
+  }, [requests, pip]);
 
   const bridge = useInitial((): HostBridge => ({
     setAlwaysOnScreen: async (alwaysOnScreen) => {
