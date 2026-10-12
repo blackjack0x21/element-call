@@ -392,6 +392,12 @@ interface Props {
   focusable: boolean;
   className?: string;
   /**
+   * Forces the tile to be drawn edge to edge, without rounded corners or a
+   * shadow, whatever the media in it says. Used by the pip layout, where the
+   * tile is the whole window.
+   */
+  "data-maximised"?: boolean;
+  /**
    * CSS class of the individual spotlight items.
    */
   itemClassName?: string;
@@ -410,6 +416,7 @@ export const SpotlightTile: FC<Props> = ({
   showRingingStatus,
   focusable = true,
   className,
+  "data-maximised": forceMaximised = false,
   itemClassName,
   style,
 }) => {
@@ -423,7 +430,7 @@ export const SpotlightTile: FC<Props> = ({
     [root$],
   );
   const ref = useMergedRefs(ourRef, theirRef);
-  const maximised = useBehavior(vm.maximised$);
+  const maximised = useBehavior(vm.maximised$) || forceMaximised;
   const background = useBehavior(vm.background$);
   const media = useBehavior(vm.media$);
   const [visibleId, setVisibleId] = useState<string | undefined>(media[0]?.id);
