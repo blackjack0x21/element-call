@@ -945,6 +945,31 @@ export function createCallViewModel$(
     ),
   );
 
+  // Tell the host whether anyone's camera or a screen share is currently on, so
+  // that it can decide whether a floating call window has anything to show.
+  combineLatest([
+    userMedia$.pipe(
+      switchMap((userMedia) =>
+        userMedia.length === 0
+          ? of([] as boolean[])
+          : combineLatest(userMedia.map((m) => m.videoEnabled$)),
+      ),
+    ),
+    screenShares$,
+  ])
+    .pipe(
+      map(
+        ([videos, screenShares]) => videos.some(Boolean) || screenShares.length > 0,
+      ),
+      distinctUntilChanged(),
+      scope.bind(),
+    )
+    .subscribe((active) => {
+      hostBridge
+        .notifyVideoActive(active)
+        .catch((e) => logger.warn("Could not send video activity to the host", e));
+    });
+
   const joinSoundEffect$ = userMedia$.pipe(
     pairwise(),
     filter(

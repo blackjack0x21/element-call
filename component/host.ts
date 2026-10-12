@@ -52,6 +52,11 @@ export interface ElementCallHostBridge {
   /** Tells the host the user's current audio and video mute state. */
   notifyDeviceMute?(state: DeviceMuteState): Promise<void>;
   /**
+   * Tells the host whether anyone in the call (including the user) has their
+   * camera on or is sharing their screen.
+   */
+  notifyVideoActive?(active: boolean): Promise<void>;
+  /**
    * Asks the host to close Element Call: to unmount the component. Its
    * presence is what makes Element Call offer a close button on its error
    * screens, and leave the host to decide what is shown once a call has ended.
@@ -168,6 +173,9 @@ export function useComponentHostBridge(
     },
     notifyDeviceMute: async (state) => {
       await latest.current.notifyDeviceMute?.(state);
+    },
+    notifyVideoActive: async (active) => {
+      await latest.current.notifyVideoActive?.(active);
     },
     // Whether these exist is itself information, so they are read through
     // rather than wrapped unconditionally

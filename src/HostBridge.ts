@@ -86,6 +86,11 @@ export interface HostBridge {
   /** Tells the host the user's current audio and video mute state. */
   notifyDeviceMute(state: DeviceMuteState): Promise<void>;
   /**
+   * Tells the host whether anyone in the call (including the user) has their
+   * camera on or is sharing their screen.
+   */
+  notifyVideoActive(active: boolean): Promise<void>;
+  /**
    * Asks the host to close Element Call, and stops communicating with it. No
    * further calls should be made on this bridge afterwards.
    *
@@ -149,6 +154,7 @@ export const nullHostBridge: HostBridge = {
   notifyJoined: async () => {},
   notifyHungUp: async () => {},
   notifyDeviceMute: async () => {},
+  notifyVideoActive: async () => {},
   themeChange$: NEVER,
   join$: NEVER,
   hangUp$: NEVER,
@@ -200,6 +206,8 @@ export function createWidgetHostBridge(widget: WidgetHelpers): HostBridge {
     notifyHungUp: async () => send(ElementWidgetActions.HangupCall),
     notifyDeviceMute: async (state) =>
       send(ElementWidgetActions.DeviceMute, state),
+    notifyVideoActive: async (active) =>
+      send(ElementWidgetActions.VideoActive, { active }),
     close: async () => {
       try {
         await send(ElementWidgetActions.Close);

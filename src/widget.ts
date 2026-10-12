@@ -44,6 +44,9 @@ export enum ElementWidgetActions {
   //   video_enabled?: boolean
   // }
   DeviceMute = "io.element.device_mute",
+  // Sent by the widget to tell the host whether any camera or screen share in
+  // the call is on. The data is { active: boolean }.
+  VideoActive = "io.element.video_active",
   // Sent by the host to set the volume of Element Call's sound effects.
   // The data of the request is { volume: number }, from 0 (silent) to 1 (full).
   SoundEffectVolume = "io.element.sound_effect_volume",
